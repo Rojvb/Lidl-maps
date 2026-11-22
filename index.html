@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Margitta Bolttérkép</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0B1530">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: one-hand phone app. Sticky header, one view at a time, tab bar under the thumb.
+   The store plan is the hero; it glows like a lit floor at night. */
+:root {
+  --bg: #0A1431;
+  --bg-2: #0F1D45;
+  --surface: #14244F;
+  --surface-2: #1B2E61;
+  --line: #2A3F7A;
+  --ink: #EEF2FF;
+  --muted: #93A3CC;
+  --accent: #FFD400;
+  --accent-ink: #1A1400;
+  --hot: #FF4D3D;
+  --floor: #101E48;
+  --floor-grid: #18295A;
+  --wall: #3A5299;
+  --ok: #3DDC84;
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 18px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #EEF2FC; --bg-2: #E2E9FA; --surface: #FFFFFF; --surface-2: #F2F5FD; --line: #CFD9F2;
+    --ink: #0B1533; --muted: #56658E; --accent: #FFD400; --accent-ink: #1A1400; --hot: #E0301F;
+    --floor: #FFFFFF; --floor-grid: #E8EEFB; --wall: #9DB0DF; --ok: #13A458; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #EEF2FC; --bg-2: #E2E9FA; --surface: #FFFFFF; --surface-2: #F2F5FD; --line: #CFD9F2;
+  --ink: #0B1533; --muted: #56658E; --accent: #FFD400; --accent-ink: #1A1400; --hot: #E0301F;
+  --floor: #FFFFFF; --floor-grid: #E8EEFB; --wall: #9DB0DF; --ok: #13A458; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+  background-image: radial-gradient(120% 60% at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%),
+                    radial-gradient(90% 50% at 0% 100%, color-mix(in srgb, #2F7BFF 16%, transparent), transparent 60%);
+  background-attachment: fixed;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 640px; margin: 0 auto; }
+
+/* Header */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+header.top .wrap { display: flex; align-items: center; gap: 12px; padding-block: 10px; }
+.mark { width: 36px; height: 36px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; flex: none; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.mark svg { width: 20px; height: 20px; }
+.brand { min-width: 0; flex: 1; }
+.brand b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: .01em; }
+.brand span { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: ping 2s infinite; }
+.status.closed i { background: var(--hot); animation: none; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 70%, transparent); } 80%,100% { box-shadow: 0 0 0 8px transparent; } }
+
+main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+.view { padding-block: 14px 8px; display: grid; gap: 14px; }
+.view[hidden] { display: none !important; }
+
+/* Search */
+.search { position: relative; }
+.search input { width: 100%; height: 52px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); padding: 0 48px 0 46px; font-size: 16px; font-weight: 600; outline: none; }
+.search input::placeholder { color: var(--muted); font-weight: 500; }
+.search input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.search .ico { position: absolute; left: 15px; top: 15px; width: 22px; height: 22px; color: var(--muted); pointer-events: none; }
+.search .clear { position: absolute; right: 6px; top: 6px; width: 40px; height: 40px; border: 0; background: transparent; color: var(--muted); border-radius: 12px; font-size: 20px; }
+.results { position: absolute; z-index: 15; left: 0; right: 0; top: 58px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 6px; box-shadow: 0 18px 40px rgba(0,0,0,.35); max-height: 52vh; overflow: auto; }
+.res { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: transparent; padding: 10px; border-radius: 12px; }
+.res:hover, .res:focus-visible { background: var(--surface-2); }
+.res .dot { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+.res .t { flex: 1; min-width: 0; }
+.res .t b { display: block; font-weight: 700; }
+.res .t small { color: var(--muted); font-size: 12.5px; }
+.res .z { font-size: 11px; color: var(--muted); text-align: right; max-width: 40%; }
+.empty-res { padding: 14px; color: var(--muted); font-size: 14px; }
+
+/* Map */
+.mapcard { position: relative; border-radius: 24px; background: var(--floor); border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 60px -30px rgba(0,0,0,.6), inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent); }
+.maphead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px 0; }
+.maphead h2 { margin: 0; font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.pill { font-size: 11.5px; font-weight: 700; padding: 5px 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); white-space: nowrap; }
+#plan { display: block; width: 100%; height: auto; max-width: 100%; touch-action: manipulation; }
+.zone rect.box { transition: opacity .25s, filter .25s, stroke-width .2s; cursor: pointer; }
+.zone text { pointer-events: none; font-family: var(--font-body); font-weight: 800; fill: var(--ink); }
+.zone .sub { font-weight: 600; fill: var(--muted); }
+.dim .zone:not(.on) rect.box { opacity: .28; }
+.dim .zone:not(.on) text { opacity: .45; }
+.zone.on rect.box { stroke: var(--accent); stroke-width: 2.5; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 60%, transparent)); }
+.route { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 70%, transparent)); }
+.route-bg { fill: none; stroke: color-mix(in srgb, var(--accent) 22%, transparent); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.flow { fill: none; stroke: var(--accent-ink); stroke-width: 1.4; stroke-dasharray: 2 10; stroke-linecap: round; animation: flow 1s linear infinite; opacity: .55; }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+.pin-pulse { fill: var(--accent); opacity: .35; transform-box: fill-box; transform-origin: center; animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { transform: scale(.6); opacity: .6; } 100% { transform: scale(2.4); opacity: 0; } }
+.stopnum { font-family: var(--font-display); font-weight: 800; font-size: 9px; fill: var(--accent-ink); }
+.you { fill: var(--hot); stroke: var(--floor); stroke-width: 2; }
+
+.legend { display: flex; gap: 8px; overflow-x: auto; padding: 4px 14px 14px; scrollbar-width: none; }
+.legend::-webkit-scrollbar { display: none; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; border-radius: 99px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.chip i { width: 10px; height: 10px; border-radius: 3px; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.note { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px dashed var(--line); padding: 12px 14px; border-radius: 16px; }
+.note b { color: var(--ink); }
+.note svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--accent); }
+
+/* Section titles */
+.h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.h h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -.01em; text-wrap: balance; }
+.h span { font-size: 13px; color: var(--muted); }
+
+/* List */
+.adder { display: flex; gap: 8px; }
+.adder .search { flex: 1; min-width: 0; }
+.adder .search input { padding-left: 16px; }
+.btn { height: 52px; padding: 0 18px; border-radius: 16px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.btn.sm { height: 40px; padding: 0 14px; border-radius: 12px; font-size: 14px; }
+.btn:active { transform: scale(.97); }
+.progress { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.progress i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), #FF9F1C); border-radius: 99px; transition: width .4s; }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
+.group header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.group header .n { width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 12px; color: #101010; flex: none; }
+.group header b { flex: 1; font-weight: 800; }
+.group header small { color: var(--muted); font-size: 12px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.item:first-of-type { border-top: 0; }
+.cb { width: 28px; height: 28px; border-radius: 9px; border: 2px solid var(--line); background: transparent; display: grid; place-items: center; flex: none; transition: .2s; }
+.cb svg { width: 16px; height: 16px; opacity: 0; transform: scale(.4); transition: .2s; color: var(--accent-ink); }
+.item.done .cb { background: var(--ok); border-color: var(--ok); }
+.item.done .cb svg { opacity: 1; transform: none; }
+.item .t { flex: 1; min-width: 0; }
+.item .t b { display: block; font-weight: 700; overflow-wrap: anywhere; }
+.item .t small { color: var(--muted); font-size: 12.5px; }
+.item.done .t b { text-decoration: line-through; color: var(--muted); }
+.x { width: 36px; height: 36px; border: 0; background: transparent; color: var(--muted); border-radius: 10px; font-size: 18px; flex: none; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.sample { font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent); padding: 3px 8px; border-radius: 99px; }
+.emptylist { text-align: center; padding: 28px 16px; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 20px; }
+
+/* Store info */
+.hero-info { border-radius: 24px; padding: 20px; background: linear-gradient(140deg, var(--surface-2), var(--surface)); border: 1px solid var(--line); position: relative; overflow: hidden; }
+.hero-info::after { content: ""; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%); }
+.hero-info .eyebrow { font-size: 11.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.hero-info h2 { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.1; margin: 6px 0 8px; text-wrap: balance; position: relative; z-index: 1; }
+.hero-info p { margin: 0; color: var(--muted); position: relative; z-index: 1; }
+.addr { font-weight: 700; color: var(--ink) !important; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.hours { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 6px 14px; }
+.hrow { display: flex; justify-content: space-between; padding: 11px 0; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); font-variant-numeric: tabular-nums; }
+.hrow:first-child { border-top: 0; }
+.hrow.today { font-weight: 800; }
+.hrow.today span:first-child::after { content: " · ma"; color: var(--accent); }
+.tips { display: grid; gap: 8px; }
+.tip { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+.tip b { display: block; margin-bottom: 2px; }
+.tip p { margin: 0; color: var(--muted); font-size: 14px; }
+.links { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.links a { text-decoration: none; }
+.src { font-size: 12.5px; color: var(--muted); }
+.src a { color: var(--muted); }
+.src ul { padding-left: 18px; margin: 6px 0 0; }
+
+/* Tab bar */
+nav.tabs { position: fixed; z-index: 25; left: 0; right: 0; bottom: 0; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+nav.tabs .in { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.tab { border: 0; background: transparent; color: var(--muted); display: grid; justify-items: center; gap: 3px; padding: 7px 4px; border-radius: 14px; font-size: 12px; font-weight: 700; position: relative; }
+.tab svg { width: 24px; height: 24px; }
+.tab[aria-selected="true"] { color: var(--accent-ink); background: var(--accent); }
+.badge { position: absolute; top: 2px; right: calc(50% - 24px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--hot); color: #fff; font-size: 11px; display: grid; place-items: center; }
+
+/* Sheet */
+.backdrop { position: fixed; inset: 0; background: rgba(3,8,25,.55); z-index: 40; opacity: 0; transition: opacity .25s; }
+.backdrop.show { opacity: 1; }
+.sheet { position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-height: 82vh; overflow: auto; background: var(--surface); border-radius: 26px 26px 0 0; border-top: 1px solid var(--line); padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); transform: translateY(105%); transition: transform .32s cubic-bezier(.2,.9,.2,1); }
+.sheet.show { transform: none; }
+.sheet .in { max-width: 600px; margin: 0 auto; display: grid; gap: 14px; }
+.grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 4px; }
+.sh-head { display: flex; gap: 12px; align-items: center; }
+.sh-head .sw { width: 44px; height: 44px; border-radius: 14px; flex: none; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; color: #101010; }
+.sh-head h3 { margin: 0; font-family: var(--font-display); font-size: 19px; font-weight: 800; line-height: 1.15; }
+.sh-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.prods { display: flex; flex-wrap: wrap; gap: 6px; }
+.prod { border: 1px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 7px 10px; font-size: 13.5px; font-weight: 700; text-align: left; }
+.prod small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+.prod.hl { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.prod .plus { color: var(--muted); }
+.zgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.zbtn { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface-2); padding: 10px; border-radius: 12px; font-size: 13px; font-weight: 700; text-align: left; }
+.zbtn i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.toast { position: fixed; z-index: 50; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 14px; font-weight: 700; font-size: 14px; opacity: 0; transition: .25s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+@media (min-width: 720px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5c-4 0-7.2 3.1-7.2 7 0 5.1 7.2 12 7.2 12s7.2-6.9 7.2-12c0-3.9-3.2-7-7.2-7z" fill="#0A1431"/><circle cx="12" cy="9.5" r="2.6" fill="#FFD400"/></svg></div>
+    <div class="brand"><b>Margitta Bolttérkép</b><span>Lidl · Str. Ion Luca Caragiale 31–35</span></div>
+    <span class="status" id="status"><i></i><span id="statusTxt">…</span></span>
+  </div>
+</header>
+
+<main>
+  <!-- MAP -->
+  <section class="view wrap" id="v-terkep" aria-label="Térkép">
+    <div class="search">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="q" type="search" autocomplete="off" placeholder="Mit keresel? pl. tej, kenyér, lapte…" aria-label="Termék keresése">
+      <button class="clear" id="qClear" aria-label="Keresés törlése" hidden>×</button>
+      <div class="results" id="results" hidden></div>
+    </div>
+
+    <div class="mapcard">
+      <div class="maphead"><h2>Alaprajz</h2><span class="pill" id="mapPill">Koppints egy részlegre</span></div>
+      <svg id="plan" viewBox="0 0 360 540" role="img" aria-label="A bolt alaprajza részlegekkel"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+      <div>A Lidl nem tesz közzé alaprajzot, ezért ez a <b>szokásos Lidl-elrendezés</b> a margittai bolt adataival. Ha valami máshol van, a termékre koppintva <b>áthelyezheted</b>, és az app megjegyzi.</div>
+    </div>
+  </section>
+
+  <!-- LIST -->
+  <section class="view wrap" id="v-lista" aria-label="Bevásárlólista" hidden>
+    <div class="h"><h2>Bevásárlólista</h2><span id="listCount"></span></div>
+    <div class="adder">
+      <div class="search">
+        <input id="addIn" type="text" autocomplete="off" placeholder="Mit kell venni?" aria-label="Új tétel">
+        <div class="results" id="addRes" hidden></div>
+      </div>
+      <button class="btn" id="addBtn" aria-label="Hozzáadás" style="font-size:26px;width:56px;padding:0">+</button>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog" style="width:0"></i></div>
+    <div class="row">
+      <button class="btn sm" id="routeBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c3 0 3-6 7-6s4-8 7-8"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg>Útvonal a térképen</button>
+      <button class="btn sm ghost" id="clearDone">Kipipáltak törlése</button>
+      <button class="btn sm ghost" id="clearAll">Lista ürítése</button>
+    </div>
+    <div id="listBody" style="display:grid;gap:12px"></div>
+    <p class="src" style="margin:0">A lista a bolton belüli bejárási sorrendben áll: a bejárattól a pénztárig.</p>
+  </section>
+
+  <!-- STORE -->
+  <section class="view wrap" id="v-bolt" aria-label="Bolt adatai" hidden>
+    <div class="hero-info">
+      <div class="eyebrow">Lidl Marghita · Bihor megye</div>
+      <h2>A margittai Lidl, egy helyen</h2>
+      <p class="addr">Strada Ion Luca Caragiale 31–35, 415300 Marghita (Margitta)</p>
+    </div>
+    <div class="links">
+      <a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Lidl%20Strada%20Ion%20Luca%20Caragiale%2031-35%20Marghita" target="_blank" rel="noopener">Google Térkép</a>
+      <a class="btn ghost" href="https://waze.com/ul?q=Lidl%20Strada%20Ion%20Luca%20Caragiale%2031%20Marghita" target="_blank" rel="noopener">Waze</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>~1300</b><span>m² eladótér</span></div>
+      <div class="stat"><b>80</b><span>parkolóhely</span></div>
+      <div class="stat"><b>2020</b><span>nyitás: aug. 13.</span></div>
+    </div>
+    <div class="h"><h2>Nyitvatartás</h2><span id="nowTxt"></span></div>
+    <div class="hours" id="hours"></div>
+    <div class="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+      <div>Román ünnepnapokon eltérhet a nyitvatartás vagy zárva lehet a bolt (például 2026. augusztus 15-én zárva volt). Ünnep előtt nézd meg a Lidl Plus appban.</div>
+    </div>
+    <div class="h"><h2>Jó tudni</h2></div>
+    <div class="tips">
+      <div class="tip"><b>Palackvisszaváltás (SGR)</b><p>A garanciajeles (Garanție-Returnare) palackokért és dobozokért darabonként 0,50 lej jár vissza. Az automata általában a bejárat mellett van, a kapott blokkot a pénztárnál váltod be.</p></div>
+      <div class="tip"><b>Lidl Plus kuponok</b><p>A kuponokat a pénztárnál, fizetés előtt aktiváld az appban, a kódot pedig mutasd fel.</p></div>
+      <div class="tip"><b>Heti újdonságok</b><p>A non-food akciók (szerszám, ruha, konyhai eszköz) hétfőn és csütörtökön szoktak cserélődni, a középső szigeteken keresd őket.</p></div>
+      <div class="tip"><b>Ha románul kell kérdezni</b><p>„Unde găsesc …?” (Hol találom a …?). Az app minden terméknél mutatja a román nevét is, így a polccímkéken is megtalálod.</p></div>
+    </div>
+    <div class="src">
+      <b>Források</b>
+      <ul>
+        <li><a href="https://corporate.lidl.ro/content/download/30957/file/Comunicat%20de%20presa_Lidl%20inaugureaza%20doua%20magazine.pdf" target="_blank" rel="noopener">Lidl România sajtóközlemény (2020): cím, ~1300 m², 80 parkoló</a></li>
+        <li><a href="https://www.economica.net/compania-lidl-va-inaugura-in-data-de-13-august-doua-magazine-noi-unul-in-ora-ul-gherla-i-unul-in-ora-ul-marghita_188601.html" target="_blank" rel="noopener">economica.net: nyitás 2020. augusztus 13.</a></li>
+        <li><a href="https://deschis.ro/marghita/lidl-marghita-116895" target="_blank" rel="noopener">deschis.ro: nyitvatartás, ünnepnapok</a></li>
+        <li><a href="https://www.ofertolino.ro/f/1948465-lidl-strada-ion-luca-caragiale-31-35-415300-marghita" target="_blank" rel="noopener">ofertolino.ro: nyitvatartás</a></li>
+      </ul>
+      <p style="margin:8px 0 0">Nem hivatalos, saját használatra készült app, nem a Lidl kiadványa.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Fő menü">
+  <div class="in" role="tablist">
+    <button class="tab" role="tab" data-v="terkep" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg>Térkép</button>
+    <button class="tab" role="tab" data-v="lista" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>Lista<span class="badge" id="badge" hidden>0</span></button>
+    <button class="tab" role="tab" data-v="bolt" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 10h16l-1.5-5h-13zM5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>Bolt</button>
+  </div>
+</nav>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden><div class="in" id="sheetIn"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('bt_' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('bt_' + k, JSON.stringify(v)); } catch {} }
+};
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[șş]/g, 's').replace(/[țţ]/g, 't').trim();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- Store zones: order = walking order from entrance to checkout ---------- */
+const P = (hu, ro) => ({ hu, ro });
+const ZONES = [
+  { id: 'sgr', name: 'Palackvisszaváltó', ro: 'Returnare SGR', c: '#4FD1A5', r: [304, 452, 40, 50], stop: [282, 476], lab: ['SGR'], items: [P('palack visszaváltás', 'returnare ambalaje'), P('üveg visszaváltás', 'sticle'), P('doboz visszaváltás', 'doze')] },
+  { id: 'zold', name: 'Zöldség & gyümölcs', ro: 'Fructe și legume', c: '#3DBE6B', r: [262, 214, 78, 186], stop: [248, 300], lab: ['Zöldség', 'gyümölcs'],
+    items: [P('banán', 'banane'), P('alma', 'mere'), P('narancs', 'portocale'), P('mandarin', 'mandarine'), P('citrom', 'lămâi'), P('szőlő', 'struguri'), P('avokádó', 'avocado'), P('paradicsom', 'roșii'), P('uborka', 'castraveți'), P('paprika', 'ardei'), P('burgonya', 'cartofi'), P('krumpli', 'cartofi'), P('vöröshagyma', 'ceapă'), P('fokhagyma', 'usturoi'), P('sárgarépa', 'morcovi'), P('saláta', 'salată verde'), P('gomba', 'ciuperci'), P('káposzta', 'varză'), P('petrezselyem', 'pătrunjel'), P('kapor', 'mărar'), P('virág', 'flori')] },
+  { id: 'pek', name: 'Pékség', ro: 'Brutărie', c: '#E8A33D', r: [262, 92, 78, 112], stop: [248, 148], lab: ['Pékség'],
+    items: [P('kenyér', 'pâine'), P('kifli', 'cornuri'), P('zsemle', 'chifle'), P('croissant', 'croissant'), P('kakaós csiga', 'melc cu cacao'), P('pogácsa', 'pogăcele'), P('bagett', 'baghetă'), P('pizzaszelet', 'pizza felie'), P('fánk', 'gogoși'), P('perec', 'covrigi'), P('muffin', 'brioșă'), P('pizza szelet', 'pizza')] },
+  { id: 'tej', name: 'Tejtermék & tojás', ro: 'Lactate și ouă', c: '#6FB7FF', r: [244, 20, 96, 48], stop: [292, 82], lab: ['Tejtermék', 'tojás'],
+    items: [P('tej', 'lapte'), P('joghurt', 'iaurt'), P('tejföl', 'smântână'), P('vaj', 'unt'), P('tojás', 'ouă'), P('túró', 'brânză de vaci'), P('kefir', 'chefir'), P('tejszín', 'frișcă'), P('puding', 'budincă'), P('növényi ital', 'băutură vegetală'), P('margarin', 'margarină'), P('tejberizs', 'orez cu lapte')] },
+  { id: 'sajt', name: 'Sajt & felvágott', ro: 'Brânzeturi și mezeluri', c: '#F2D14B', r: [132, 20, 108, 48], stop: [186, 82], lab: ['Sajt', 'felvágott'],
+    items: [P('sajt', 'cașcaval'), P('trappista', 'cașcaval'), P('mozzarella', 'mozzarella'), P('telemea', 'telemea'), P('juhtúró', 'brânză de burduf'), P('sonka', 'șuncă'), P('szalámi', 'salam'), P('kolbász', 'cârnați'), P('virsli', 'crenvurști'), P('párizsi', 'parizer'), P('szalonna', 'slănină'), P('hummusz', 'hummus'), P('franciasaláta', 'salată de boeuf'), P('kenőmájas', 'pateu')] },
+  { id: 'hus', name: 'Hús & hal', ro: 'Carne și pește', c: '#F2645A', r: [20, 20, 108, 48], stop: [96, 82], lab: ['Hús', 'hal'],
+    items: [P('csirkemell', 'piept de pui'), P('csirkecomb', 'pulpe de pui'), P('csirke', 'pui'), P('darált hús', 'carne tocată'), P('sertéskaraj', 'cotlet de porc'), P('sertéshús', 'carne de porc'), P('marhahús', 'carne de vită'), P('pulyka', 'curcan'), P('mici', 'mici'), P('hal', 'pește'), P('lazac', 'somon'), P('pisztráng', 'păstrăv')] },
+  { id: 'haz', name: 'Háztartás & drogéria', ro: 'Curățenie și cosmetice', c: '#B58CFF', r: [20, 92, 64, 112], stop: [92, 148], lab: ['Háztartás', 'drogéria'],
+    items: [P('mosószer', 'detergent rufe'), P('öblítő', 'balsam de rufe'), P('mosogatószer', 'detergent de vase'), P('wc papír', 'hârtie igienică'), P('papírtörlő', 'prosoape de hârtie'), P('szalvéta', 'șervețele'), P('fogkrém', 'pastă de dinți'), P('fogkefe', 'periuță de dinți'), P('sampon', 'șampon'), P('tusfürdő', 'gel de duș'), P('szappan', 'săpun'), P('dezodor', 'deodorant'), P('pelenka', 'scutece'), P('szemeteszsák', 'saci de gunoi'), P('szivacs', 'bureți'), P('alufólia', 'folie de aluminiu'), P('tisztítószer', 'soluție de curățat')] },
+  { id: 'ital', name: 'Italok', ro: 'Băuturi', c: '#3CC6C6', r: [20, 214, 64, 98], stop: [92, 262], lab: ['Italok'],
+    items: [P('ásványvíz', 'apă minerală'), P('víz', 'apă plată'), P('üdítő', 'suc'), P('gyümölcslé', 'suc natural'), P('cola', 'cola'), P('sör', 'bere'), P('bor', 'vin'), P('pezsgő', 'șampanie'), P('pálinka', 'pălincă'), P('energiaital', 'băutură energizantă'), P('jeges tea', 'ceai rece')] },
+  { id: 'alap', name: 'Alapélelmiszer', ro: 'Alimente de bază', c: '#E58A5B', r: [108, 100, 26, 266], stop: [145, 232], lab: ['Alapélelmiszer'], vert: true,
+    items: [P('liszt', 'făină'), P('cukor', 'zahăr'), P('só', 'sare'), P('rizs', 'orez'), P('tészta', 'paste'), P('olaj', 'ulei'), P('ecet', 'oțet'), P('konzerv', 'conserve'), P('paradicsomszósz', 'sos de roșii'), P('bab', 'fasole'), P('kukorica', 'porumb'), P('fűszer', 'condimente'), P('bors', 'piper'), P('ketchup', 'ketchup'), P('majonéz', 'maioneză'), P('mustár', 'muștar'), P('puliszkaliszt', 'mălai'), P('toast kenyér', 'pâine toast'), P('tonhal', 'ton'), P('leves', 'supă instant')] },
+  { id: 'regg', name: 'Reggeli & kávé', ro: 'Mic dejun și cafea', c: '#D46FB0', r: [156, 100, 30, 266], stop: [197, 232], lab: ['Reggeli', 'kávé'], vert: true,
+    items: [P('kávé', 'cafea'), P('kávékapszula', 'capsule cafea'), P('tea', 'ceai'), P('müzli', 'musli'), P('gabonapehely', 'cereale'), P('zabpehely', 'fulgi de ovăz'), P('kakaó', 'cacao'), P('lekvár', 'gem'), P('méz', 'miere'), P('mogyorókrém', 'cremă de alune'), P('keksz', 'biscuiți'), P('csokoládé', 'ciocolată')] },
+  { id: 'snack', name: 'Snack & édesség', ro: 'Snacksuri și dulciuri', c: '#9CCB3B', r: [208, 100, 30, 266], stop: [248, 232], lab: ['Snack', 'édesség'], vert: true,
+    items: [P('chips', 'chipsuri'), P('ropi', 'sticksuri'), P('sós mogyoró', 'arahide'), P('napraforgómag', 'semințe'), P('popcorn', 'popcorn'), P('gumicukor', 'jeleuri'), P('nápolyi', 'napolitane'), P('bonbon', 'praline'), P('cukorka', 'bomboane'), P('szárított gyümölcs', 'fructe uscate')] },
+  { id: 'nonf', name: 'Heti akciók (non-food)', ro: 'Oferte săptămânale', c: '#8C9BB8', r: [108, 392, 130, 30], stop: [172, 380], lab: ['Heti akciók'],
+    items: [P('heti akció', 'oferta săptămânii'), P('szerszám', 'scule'), P('ruha', 'îmbrăcăminte'), P('konyhai eszköz', 'ustensile de bucătărie'), P('játék', 'jucării'), P('elemlámpa', 'lanternă'), P('kerti eszköz', 'grădină')] },
+  { id: 'fagy', name: 'Fagyasztott', ro: 'Congelate', c: '#7FD8FF', r: [20, 322, 64, 98], stop: [92, 360], lab: ['Fagyasztott'],
+    items: [P('fagyi', 'înghețată'), P('fagylalt', 'înghețată'), P('fagyasztott pizza', 'pizza congelată'), P('fagyasztott zöldség', 'legume congelate'), P('hasábburgonya', 'cartofi prăjiți'), P('halrudacska', 'batoane de pește'), P('jég', 'gheață'), P('fagyasztott hal', 'pește congelat')] },
+  { id: 'kassza', name: 'Pénztárak', ro: 'Case de marcat', c: '#FFD400', r: [20, 452, 196, 46], stop: [118, 436], lab: ['Pénztárak'],
+    items: [P('rágógumi', 'gumă de mestecat'), P('elem', 'baterii'), P('cigaretta', 'țigări'), P('bevásárlótáska', 'sacoșă'), P('szatyor', 'pungă')] }
+];
+const ZI = Object.fromEntries(ZONES.map((z, i) => [z.id, Object.assign(z, { ord: i })]));
+
+/* ---------- Walkway graph ---------- */
+const N = {
+  E: [300, 522], Ein: [282, 436], Rb: [248, 436], Rm: [248, 380], Rt: [248, 82], Tr: [320, 82],
+  T197: [197, 82], T145: [145, 82], T92: [92, 82], Lm: [92, 380], Lb: [92, 436],
+  M145: [145, 380], M197: [197, 380], B145: [145, 436], B197: [197, 436], X: [118, 522]
+};
+const EDGES = [['E','Ein'],['Ein','Rb'],['Rb','Rm'],['Rm','Rt'],['Rt','Tr'],['Rt','T197'],['T197','T145'],['T145','T92'],['T92','Lm'],['Lm','Lb'],
+  ['T145','M145'],['T197','M197'],['Lm','M145'],['M145','M197'],['M197','Rm'],['Lb','B145'],['B145','B197'],['B197','Rb']];
+const adj = {};
+const link = (a, b) => { const d = Math.hypot(N[a][0] - N[b][0], N[a][1] - N[b][1]); (adj[a] ||= []).push([b, d]); (adj[b] ||= []).push([a, d]); };
+EDGES.forEach(([a, b]) => link(a, b));
+ZONES.forEach(z => {
+  const id = 'z_' + z.id, [px, py] = z.stop; let best = null;
+  EDGES.forEach(([a, b]) => {
+    const [ax, ay] = N[a], [bx, by] = N[b], dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L));
+    const qx = ax + t * dx, qy = ay + t * dy, d = Math.hypot(px - qx, py - qy);
+    if (!best || d < best.d) best = { d, a, b, q: [qx, qy] };
+  });
+  N[id] = best.q; link(id, best.a); link(id, best.b);
+});
+link('z_kassza', 'X');
+function path(a, b) {
+  const dist = { [a]: 0 }, prev = {}, seen = new Set();
+  while (true) {
+    let u = null; for (const k in dist) if (!seen.has(k) && (u === null || dist[k] < dist[u])) u = k;
+    if (u === null || u === b) break; seen.add(u);
+    for (const [v, w] of adj[u]) if (dist[u] + w < (dist[v] ?? Infinity)) { dist[v] = dist[u] + w; prev[v] = u; }
+  }
+  const out = [b]; let c = b; while (c !== a) { c = prev[c]; if (c === undefined) return [a, b]; out.unshift(c); }
+  return out;
+}
+function routeThrough(zoneIds) {
+  const seq = ['E', ...zoneIds.map(z => 'z_' + z)];
+  let pts = [N.E];
+  for (let i = 1; i < seq.length; i++) path(seq[i - 1], seq[i]).slice(1).forEach(n => pts.push(N[n]));
+  let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  return { pts, len };
+}
+
+/* ---------- Catalogue (with user overrides) ---------- */
+let overrides = store.get('ovr', {});      // norm(name) -> zoneId
+let custom = store.get('custom', []);      // [{hu, ro, z}]
+function catalogue() {
+  const out = [];
+  ZONES.forEach(z => z.items.forEach(it => out.push({ hu: it.hu, ro: it.ro, z: overrides[norm(it.hu)] || z.id })));
+  custom.forEach(c => out.push({ hu: c.hu, ro: c.ro || '', z: overrides[norm(c.hu)] || c.z, custom: true }));
+  return out;
+}
+function zoneOf(name) {
+  const n = norm(name);
+  if (overrides[n]) return overrides[n];
+  const hit = catalogue().find(p => norm(p.hu) === n || norm(p.ro) === n);
+  return hit ? hit.z : null;
+}
+function search(q) {
+  const n = norm(q); if (!n) return [];
+  const res = [];
+  catalogue().forEach(p => {
+    const h = norm(p.hu), r = norm(p.ro);
+    let s = -1;
+    if (h === n || r === n) s = 0; else if (h.startsWith(n) || r.startsWith(n)) s = 1;
+    else if (h.split(' ').some(w => w.startsWith(n)) || r.split(' ').some(w => w.startsWith(n))) s = 2;
+    else if (h.includes(n) || r.includes(n)) s = 3;
+    if (s >= 0) res.push({ ...p, s });
+  });
+  ZONES.forEach(z => { const a = norm(z.name), b = norm(z.ro); if (a.includes(n) || b.includes(n)) res.push({ zoneOnly: true, z: z.id, hu: z.name, ro: z.ro, s: a.startsWith(n) ? 1 : 3 }); });
+  const seen = new Set();
+  return res.sort((a, b) => a.s - b.s || a.hu.length - b.hu.length).filter(p => { const k = p.hu + p.z; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 8);
+}
+
+/* ---------- Draw plan ---------- */
+const plan = $('#plan');
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+function drawPlan() {
+  plan.innerHTML = '';
+  const defs = el('defs', {}, plan);
+  const pat = el('pattern', { id: 'grid', width: 12, height: 12, patternUnits: 'userSpaceOnUse' }, defs);
+  el('path', { d: 'M12 0H0V12', fill: 'none', stroke: 'var(--floor-grid)', 'stroke-width': 1 }, pat);
+  el('rect', { x: 8, y: 8, width: 344, height: 506, rx: 20, fill: 'url(#grid)', stroke: 'var(--wall)', 'stroke-width': 2.5 }, plan);
+  // doors
+  el('rect', { x: 262, y: 508, width: 40, height: 12, rx: 3, fill: 'var(--ok)' }, plan);
+  el('rect', { x: 92, y: 508, width: 50, height: 12, rx: 3, fill: 'var(--muted)' }, plan);
+  const t1 = el('text', { x: 282, y: 535, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: 'var(--ok)', 'font-family': 'Manrope, sans-serif' }, plan); t1.textContent = 'BEJÁRAT';
+  const t2 = el('text', { x: 117, y: 535, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: 'var(--muted)', 'font-family': 'Manrope, sans-serif' }, plan); t2.textContent = 'KIJÁRAT';
+  const zg = el('g', { id: 'zones' }, plan);
+  ZONES.forEach(z => {
+    const [x, y, w, h] = z.r;
+    const g = el('g', { class: 'zone', 'data-z': z.id, tabindex: 0, role: 'button', 'aria-label': z.name }, zg);
+    el('rect', { class: 'box', x, y, width: w, height: h, rx: 8, fill: z.c, 'fill-opacity': .22, stroke: z.c, 'stroke-width': 1.4 }, g);
+    if (z.id === 'kassza') for (let i = 0; i < 4; i++) el('rect', { x: x + 14 + i * 46, y: y + 8, width: 28, height: 12, rx: 3, fill: z.c, 'fill-opacity': .55 }, g);
+    if (z.id === 'nonf') for (let i = 0; i < 3; i++) el('rect', { x: x + 6 + i * 42, y: y + 5, width: 36, height: 20, rx: 5, fill: z.c, 'fill-opacity': .25 }, g);
+    const cx = x + w / 2, cy = y + h / 2;
+    if (z.vert) {
+      const t = el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, transform: `rotate(-90 ${cx} ${cy})` }, g);
+      t.textContent = z.lab.join(' · ');
+    } else {
+      const fs = w < 70 ? 8.6 : 10;
+      const ty = z.id === 'kassza' ? y + 35 : cy - (z.lab.length - 1) * 6;
+      z.lab.forEach((l, i) => { const t = el('text', { x: cx, y: ty + i * 12, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': fs, class: i ? 'sub' : '' }, g); t.textContent = (i ? '& ' : '') + l; });
+    }
+    g.addEventListener('click', () => openZone(z.id));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openZone(z.id); } });
+  });
+  el('g', { id: 'routeLayer' }, plan);
+  el('circle', { class: 'you', cx: N.E[0], cy: N.E[1] - 8, r: 6 }, plan);
+}
+
+function showRoute(zoneIds, numbered) {
+  const layer = $('#routeLayer'); layer.innerHTML = '';
+  plan.classList.toggle('dim', zoneIds.length > 0);
+  document.querySelectorAll('.zone').forEach(g => g.classList.toggle('on', zoneIds.includes(g.dataset.z)));
+  if (!zoneIds.length) return;
+  const { pts, len } = routeThrough(zoneIds);
+  const d = 'M' + pts.map(p => p.map(n => n.toFixed(1)).join(' ')).join('L');
+  el('path', { class: 'route-bg', d }, layer);
+  const r = el('path', { class: 'route', d, 'stroke-dasharray': len, 'stroke-dashoffset': len }, layer);
+  el('path', { class: 'flow', d }, layer);
+  requestAnimationFrame(() => { r.style.transition = `stroke-dashoffset ${Math.min(2.2, .6 + len / 900)}s cubic-bezier(.4,.1,.2,1)`; r.setAttribute('stroke-dashoffset', 0); });
+  zoneIds.forEach((z, i) => {
+    const [x, y] = N['z_' + z];
+    if (numbered || i === zoneIds.length - 1) el('circle', { class: 'pin-pulse', cx: x, cy: y, r: 9 }, layer);
+    el('circle', { cx: x, cy: y, r: numbered ? 8 : 7, fill: 'var(--accent)', stroke: 'var(--floor)', 'stroke-width': 2 }, layer);
+    if (numbered) { const t = el('text', { class: 'stopnum', x, y: y + .5, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, layer); t.textContent = i + 1; }
+  });
+  const meters = Math.round(len * 0.13);
+  $('#mapPill').textContent = numbered ? `${zoneIds.length} megálló · ~${meters} m` : `${ZI[zoneIds[zoneIds.length - 1]].name} · ~${meters} m`;
+}
+
+/* ---------- Legend ---------- */
+function drawLegend(active) {
+  $('#legend').innerHTML = ZONES.map(z => `<button class="chip" data-z="${z.id}" aria-pressed="${z.id === active}"><i style="background:${z.c}"></i>${esc(z.name)}</button>`).join('');
+}
+$('#legend').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) openZone(b.dataset.z); });
+
+/* ---------- Sheet ---------- */
+const sheet = $('#sheet'), backdrop = $('#backdrop');
+function openSheet(html) {
+  $('#sheetIn').innerHTML = '<div class="grab"></div>' + html;
+  sheet.hidden = backdrop.hidden = false;
+  requestAnimationFrame(() => { sheet.classList.add('show'); backdrop.classList.add('show'); });
+}
+function closeSheet() {
+  sheet.classList.remove('show'); backdrop.classList.remove('show');
+  setTimeout(() => { sheet.hidden = backdrop.hidden = true; }, 300);
+}
+backdrop.addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
+
+function openZone(zid, hlName) {
+  const z = ZI[zid];
+  showRoute([zid]); drawLegend(zid); setView('terkep', true);
+  const prods = catalogue().filter(p => p.z === zid);
+  const step = z.ord + 1;
+  openSheet(`
+    <div class="sh-head"><div class="sw" style="background:${z.c}">${step}</div><div><h3 id="shTitle">${esc(z.name)}</h3><p>RO: ${esc(z.ro)} · bejárás ${step}. állomása</p></div></div>
+    <div class="prods">${prods.map(p => `<button class="prod${hlName && norm(p.hu) === norm(hlName) ? ' hl' : ''}" data-add="${esc(p.hu)}">${esc(p.hu)} <span class="plus">+</span><small>${esc(p.ro)}</small></button>`).join('')}</div>
+    <p class="src" style="margin:0">Koppints egy termékre, hogy a listádra kerüljön.</p>
+    ${hlName ? `<div class="row"><button class="btn sm ghost" data-move="${esc(hlName)}">„${esc(hlName)}” nem itt van? Áthelyezem</button></div>` : ''}
+    <button class="btn ghost" data-close>Bezárás</button>`);
+}
+sheet.addEventListener('click', e => {
+  const a = e.target.closest('[data-add]'); if (a) { addItem(a.dataset.add); return; }
+  const m = e.target.closest('[data-move]'); if (m) { pickZone(m.dataset.move); return; }
+  const s = e.target.closest('[data-setz]'); if (s) { setZone(s.dataset.name, s.dataset.setz); return; }
+  if (e.target.closest('[data-close]')) closeSheet();
+});
+function pickZone(name, isNew) {
+  openSheet(`
+    <div class="sh-head"><div class="sw" style="background:var(--accent)">?</div><div><h3 id="shTitle">Hol van: ${esc(name)}?</h3><p>${isNew ? 'Ezt még nem ismerem. Válaszd ki a részleget, és megjegyzem.' : 'Válaszd ki, hol láttad a boltban. Ezt az app megjegyzi.'}</p></div></div>
+    <div class="zgrid">${ZONES.map(z => `<button class="zbtn" data-setz="${z.id}" data-name="${esc(name)}"><i style="background:${z.c}"></i>${esc(z.name)}</button>`).join('')}</div>
+    <button class="btn ghost" data-close>Mégse</button>`);
+}
+function setZone(name, zid) {
+  const n = norm(name);
+  const known = catalogue().some(p => norm(p.hu) === n);
+  if (known) overrides[n] = zid; else custom.push({ hu: name.trim(), ro: '', z: zid });
+  store.set('ovr', overrides); store.set('custom', custom);
+  list.forEach(it => { if (norm(it.name) === n) it.z = zid; }); saveList();
+  if (pendingAdd && norm(pendingAdd) === n) { pendingAdd = null; addItem(name); }
+  closeSheet(); toast(`Megjegyeztem: ${name} → ${ZI[zid].name}`); renderList();
+}
+
+/* ---------- Search (map) ---------- */
+const q = $('#q'), results = $('#results');
+function renderResults(box, items, mode) {
+  if (!items.length) { box.innerHTML = `<div class="empty-res">Nincs találat. ${mode === 'add' ? 'Nyomd meg a + gombot, és megmondod, hol van.' : 'Próbáld románul is, vagy add a listához, és megmondod, hol van.'}</div>`; box.hidden = false; return; }
+  box.innerHTML = items.map(p => { const z = ZI[p.z]; return `<button class="res" data-name="${esc(p.hu)}" data-z="${p.z}" data-zone="${p.zoneOnly ? 1 : ''}"><span class="dot" style="background:${z.c}"></span><span class="t"><b>${esc(p.hu)}</b><small>${p.zoneOnly ? 'részleg' : 'RO: ' + esc(p.ro || '–')}</small></span><span class="z">${esc(z.name)}</span></button>`; }).join('');
+  box.hidden = false;
+}
+q.addEventListener('input', () => { $('#qClear').hidden = !q.value; if (!q.value.trim()) { results.hidden = true; return; } renderResults(results, search(q.value), 'map'); });
+q.addEventListener('keydown', e => { if (e.key === 'Enter') { const f = results.querySelector('.res'); if (f) f.click(); } });
+$('#qClear').addEventListener('click', () => { q.value = ''; results.hidden = true; $('#qClear').hidden = true; showRoute([]); drawLegend(); $('#mapPill').textContent = 'Koppints egy részlegre'; q.focus(); });
+results.addEventListener('click', e => { const b = e.target.closest('.res'); if (!b) return; results.hidden = true; q.blur(); openZone(b.dataset.z, b.dataset.zone ? null : b.dataset.name); });
+document.addEventListener('click', e => { if (!e.target.closest('.search')) { results.hidden = true; $('#addRes').hidden = true; } });
+
+/* ---------- Shopping list ---------- */
+const SAMPLE = ['tej', 'kenyér', 'banán', 'csirkemell', 'kávé', 'mosogatószer'];
+let list = store.get('list', null);
+let isSample = false;
+if (!list) { list = SAMPLE.map(n => ({ name: n, z: zoneOf(n), done: n === 'banán' })); isSample = true; }
+let pendingAdd = null;
+function saveList() { if (!isSample) store.set('list', list); }
+function addItem(name) {
+  name = name.trim(); if (!name) return;
+  if (isSample) { list = []; isSample = false; }
+  const z = zoneOf(name);
+  if (!z) { pendingAdd = name; pickZone(name, true); return; }
+  if (list.some(i => norm(i.name) === norm(name) && !i.done)) { toast(`${name} már a listán van`); return; }
+  list.push({ name, z, done: false }); saveList(); renderList(); toast(`Hozzáadva: ${name}`);
+}
+function renderList() {
+  const body = $('#listBody');
+  const open = list.filter(i => !i.done).length;
+  $('#badge').hidden = !open; $('#badge').textContent = open;
+  $('#listCount').innerHTML = list.length ? `${list.length - open}/${list.length} kész ${isSample ? '<span class="sample">példa</span>' : ''}` : '';
+  $('#prog').style.width = list.length ? ((list.length - open) / list.length * 100) + '%' : '0';
+  if (!list.length) { body.innerHTML = `<div class="emptylist"><b style="color:var(--ink)">Üres a lista.</b><br>Írd be fent, mit kell venni (magyarul vagy románul), és bejárási sorrendbe rendezem.</div>`; return; }
+  const groups = {};
+  list.forEach((it, idx) => (groups[it.z] ||= []).push({ ...it, idx }));
+  body.innerHTML = Object.keys(groups).sort((a, b) => ZI[a].ord - ZI[b].ord).map((zid, gi) => {
+    const z = ZI[zid];
+    return `<div class="group"><header><span class="n" style="background:${z.c}">${gi + 1}</span><b>${esc(z.name)}</b><small>RO: ${esc(z.ro)}</small></header>${groups[zid].map(it => {
+      const ro = (catalogue().find(p => norm(p.hu) === norm(it.name)) || {}).ro;
+      return `<div class="item${it.done ? ' done' : ''}"><button class="cb" data-tog="${it.idx}" aria-label="${esc(it.name)} kipipálása" aria-pressed="${it.done}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button><div class="t"><b>${esc(it.name)}</b>${ro ? `<small>${esc(ro)}</small>` : ''}</div><button class="x" data-loc="${it.idx}" aria-label="Megmutatás a térképen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg></button><button class="x" data-del="${it.idx}" aria-label="${esc(it.name)} törlése">×</button></div>`;
+    }).join('')}</div>`;
+  }).join('');
+}
+$('#listBody').addEventListener('click', e => {
+  const t = e.target.closest('[data-tog]'), d = e.target.closest('[data-del]'), l = e.target.closest('[data-loc]');
+  if (t) { const it = list[+t.dataset.tog]; it.done = !it.done; if (isSample) isSample = false; saveList(); renderList(); if (navigator.vibrate) try { navigator.vibrate(12); } catch {} }
+  if (d) { if (isSample) isSample = false; list.splice(+d.dataset.del, 1); saveList(); renderList(); }
+  if (l) { const it = list[+l.dataset.loc]; openZone(it.z, it.name); }
+});
+const addIn = $('#addIn'), addRes = $('#addRes');
+addIn.addEventListener('input', () => { if (!addIn.value.trim()) { addRes.hidden = true; return; } renderResults(addRes, search(addIn.value).filter(p => !p.zoneOnly), 'add'); });
+addRes.addEventListener('click', e => { const b = e.target.closest('.res'); if (!b) return; addRes.hidden = true; addItem(b.dataset.name); addIn.value = ''; addIn.focus(); });
+function submitAdd() { const v = addIn.value.trim(); if (!v) return; addRes.hidden = true; const first = search(v).filter(p => !p.zoneOnly)[0]; addItem(first && norm(first.hu) === norm(v) ? first.hu : v); addIn.value = ''; }
+addIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submitAdd(); } });
+$('#addBtn').addEventListener('click', submitAdd);
+$('#clearDone').addEventListener('click', () => { list = list.filter(i => !i.done); isSample = false; saveList(); renderList(); });
+$('#clearAll').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (b.dataset.armed) { list = []; isSample = false; saveList(); renderList(); b.textContent = 'Lista ürítése'; delete b.dataset.armed; return; }
+  b.dataset.armed = 1; b.textContent = 'Biztos? Koppints újra'; setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = 'Lista ürítése'; } }, 3000);
+});
+$('#routeBtn').addEventListener('click', () => {
+  const zs = [...new Set(list.filter(i => !i.done).map(i => i.z))].sort((a, b) => ZI[a].ord - ZI[b].ord);
+  if (!zs.length) { toast('Nincs kipipálatlan tétel'); return; }
+  if (zs[zs.length - 1] !== 'kassza') zs.push('kassza');
+  setView('terkep'); drawLegend(); setTimeout(() => showRoute(zs, true), 60);
+});
+
+/* ---------- Hours ---------- */
+const HOURS = [[8, 20], [7, 22], [7, 22], [7, 22], [7, 22], [7, 22], [7, 22]]; // Sun..Sat
+const DAYS = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
+function nowRO() {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t).value;
+  return { day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday')), h: +get('hour') + +get('minute') / 60, hm: get('hour') + ':' + get('minute') };
+}
+const f = h => String(h).padStart(2, '0') + ':00';
+function renderHours() {
+  const n = nowRO(), [o, c] = HOURS[n.day], open = n.h >= o && n.h < c;
+  let txt;
+  if (open) { const left = c - n.h; txt = left <= 1 ? `Nyitva · ${Math.round(left * 60)} perc múlva zár` : `Nyitva ${f(c)}-ig`; }
+  else { const nd = n.h < o ? n.day : (n.day + 1) % 7; txt = `Zárva · nyit ${n.h < o ? 'ma' : 'holnap'} ${f(HOURS[nd][0])}`; }
+  $('#statusTxt').textContent = txt; $('#status').classList.toggle('closed', !open);
+  $('#nowTxt').textContent = `Margittán most ${n.hm}`;
+  $('#hours').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => `<div class="hrow${d === n.day ? ' today' : ''}"><span>${DAYS[d]}</span><span>${f(HOURS[d][0])} – ${f(HOURS[d][1])}</span></div>`).join('');
+}
+
+/* ---------- Views ---------- */
+const VIEWS = ['terkep', 'lista', 'bolt'];
+function setView(v, keepHash) {
+  VIEWS.forEach(x => { $('#v-' + x).hidden = x !== v; });
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.v === v));
+  if (location.hash !== '#' + v) try { history.replaceState(null, '', '#' + v); } catch { }
+  if (!keepHash) window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { closeSheet(); setView(t.dataset.v); }));
+window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (VIEWS.includes(v)) setView(v); });
+
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+
+/* ---------- Boot ---------- */
+drawPlan(); drawLegend(); renderList(); renderHours(); setInterval(renderHours, 30000);
+const startV = location.hash.slice(1);
+setView(VIEWS.includes(startV) ? startV : 'terkep', true);
+// Opening frame: show the sample shopping route so the map is alive at rest.
+setTimeout(() => { const zs = [...new Set(list.filter(i => !i.done).map(i => i.z))].sort((a, b) => ZI[a].ord - ZI[b].ord); if (zs.length) { zs.push('kassza'); showRoute([...new Set(zs)], true); } }, 250);
+if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

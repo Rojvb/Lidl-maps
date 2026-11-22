@@ -1,0 +1,10 @@
+{
+  "name": "Margitta Bolttérkép",
+  "short_name": "Bolttérkép",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0B1530",
+  "theme_color": "#0B1530",
+  "lang": "hu",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
