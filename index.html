@@ -105,7 +105,7 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 .empty-res { padding: 14px; color: var(--muted); font-size: 14px; }
 
 /* Map */
-.mapcard { position: relative; border-radius: 24px; background: var(--floor); border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 60px -30px rgba(0,0,0,.6), inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent); }
+.mapcard { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; position: relative; border-radius: 24px; background: var(--floor); border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 60px -30px rgba(0,0,0,.6), inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent); }
 .maphead { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px 0; }
 .maphead h2 { margin: 0; font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .pill { font-size: 11.5px; font-weight: 700; padding: 5px 9px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); white-space: nowrap; }
@@ -227,6 +227,25 @@ nav.tabs .in { max-width: 520px; margin: 0 auto; display: grid; grid-template-co
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.ebtn { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 6px 12px; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+.ebtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.maphead .pill { margin-left: auto; }
+.mapcard.editing { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.mapcard.editing #plan { touch-action: none; }
+.mapcard.editing .zone rect.box { stroke-dasharray: 4 3; cursor: grab; }
+.zone.sel rect.box { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: none !important; fill-opacity: .4; }
+.zone.swapping rect.box { stroke: var(--hot); stroke-width: 3; animation: blink .8s infinite alternate; }
+@keyframes blink { to { stroke-opacity: .3; } }
+.handle { fill: var(--accent); stroke: var(--floor); stroke-width: 2; }
+.door { cursor: default; }
+.mapcard.editing .door { cursor: grab; }
+.editbar { padding: 4px 14px 10px; display: grid; gap: 10px; }
+.editbar p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.editbar p b { color: var(--ink); }
+.etools { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn:disabled { opacity: .4; }
+.field { width: 100%; height: 50px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 14px; font-size: 16px; font-weight: 600; outline: none; }
+.field:focus { border-color: var(--accent); }
 @media (min-width: 720px) { .stats { grid-template-columns: repeat(4, 1fr); } }
 </style>
 
@@ -249,14 +268,25 @@ nav.tabs .in { max-width: 520px; margin: 0 auto; display: grid; grid-template-co
     </div>
 
     <div class="mapcard">
-      <div class="maphead"><h2>Alaprajz</h2><span class="pill" id="mapPill">Koppints egy részlegre</span></div>
+      <div class="maphead"><h2>Alaprajz</h2><span class="pill" id="mapPill">Koppints egy részlegre</span><button class="ebtn" id="editBtn">Szerkesztés</button></div>
       <svg id="plan" viewBox="0 0 360 540" role="img" aria-label="A bolt alaprajza részlegekkel"></svg>
+      <div class="editbar" id="editBar" hidden>
+        <p id="editHint"></p>
+        <div class="etools">
+          <button class="btn sm" id="eSwap">Csere</button>
+          <button class="btn sm ghost" id="eRot">Elforgat</button>
+          <button class="btn sm ghost" id="eRen">Átnevez</button>
+          <button class="btn sm ghost" id="eAdd">+ Új részleg</button>
+          <button class="btn sm ghost" id="eDel" hidden>Törlés</button>
+          <button class="btn sm ghost" id="eReset">Alapállapot</button>
+        </div>
+      </div>
       <div class="legend" id="legend"></div>
     </div>
 
     <div class="note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
-      <div>A Lidl nem tesz közzé alaprajzot, ezért ez a <b>szokásos Lidl-elrendezés</b> a margittai bolt adataival. Ha valami máshol van, a termékre koppintva <b>áthelyezheted</b>, és az app megjegyzi.</div>
+      <div>A Lidl nem tesz közzé alaprajzot, ezért a kiinduló térkép csak egy szokásos Lidl-elrendezés. A <b>Szerkesztés</b> gombbal rendezd át a margittai bolt szerint: húzd a részlegeket a helyükre, vagy cseréld fel őket. Egy terméket a nevére koppintva tudsz <b>áthelyezni</b>. Az útvonal és a lista sorrendje mindig a te térképedet követi.</div>
     </div>
   </section>
 
@@ -349,7 +379,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;'
 /* ---------- Store zones: order = walking order from entrance to checkout ---------- */
 const P = (hu, ro) => ({ hu, ro });
 const ZONES = [
-  { id: 'sgr', name: 'Palackvisszaváltó', ro: 'Returnare SGR', c: '#4FD1A5', r: [304, 452, 40, 50], stop: [282, 476], lab: ['SGR'], items: [P('palack visszaváltás', 'returnare ambalaje'), P('üveg visszaváltás', 'sticle'), P('doboz visszaváltás', 'doze')] },
+  { id: 'sgr', name: 'Palackvisszaváltó', ro: 'Returnare SGR', c: '#4FD1A5', r: [306, 444, 38, 48], stop: [282, 476], lab: ['SGR'], items: [P('palack visszaváltás', 'returnare ambalaje'), P('üveg visszaváltás', 'sticle'), P('doboz visszaváltás', 'doze')] },
   { id: 'zold', name: 'Zöldség & gyümölcs', ro: 'Fructe și legume', c: '#3DBE6B', r: [262, 214, 78, 186], stop: [248, 300], lab: ['Zöldség', 'gyümölcs'],
     items: [P('banán', 'banane'), P('alma', 'mere'), P('narancs', 'portocale'), P('mandarin', 'mandarine'), P('citrom', 'lămâi'), P('szőlő', 'struguri'), P('avokádó', 'avocado'), P('paradicsom', 'roșii'), P('uborka', 'castraveți'), P('paprika', 'ardei'), P('burgonya', 'cartofi'), P('krumpli', 'cartofi'), P('vöröshagyma', 'ceapă'), P('fokhagyma', 'usturoi'), P('sárgarépa', 'morcovi'), P('saláta', 'salată verde'), P('gomba', 'ciuperci'), P('káposzta', 'varză'), P('petrezselyem', 'pătrunjel'), P('kapor', 'mărar'), P('virág', 'flori')] },
   { id: 'pek', name: 'Pékség', ro: 'Brutărie', c: '#E8A33D', r: [262, 92, 78, 112], stop: [248, 148], lab: ['Pékség'],
@@ -377,44 +407,128 @@ const ZONES = [
   { id: 'kassza', name: 'Pénztárak', ro: 'Case de marcat', c: '#FFD400', r: [20, 452, 196, 46], stop: [118, 436], lab: ['Pénztárak'],
     items: [P('rágógumi', 'gumă de mestecat'), P('elem', 'baterii'), P('cigaretta', 'țigări'), P('bevásárlótáska', 'sacoșă'), P('szatyor', 'pungă')] }
 ];
-const ZI = Object.fromEntries(ZONES.map((z, i) => [z.id, Object.assign(z, { ord: i })]));
+let ZI = {};
+const PALETTE = ['#FF8FA3', '#5FD3F3', '#C3E66E', '#FFB86B', '#A0A8FF', '#F7A1E8'];
 
-/* ---------- Walkway graph ---------- */
-const N = {
-  E: [300, 522], Ein: [282, 436], Rb: [248, 436], Rm: [248, 380], Rt: [248, 82], Tr: [320, 82],
-  T197: [197, 82], T145: [145, 82], T92: [92, 82], Lm: [92, 380], Lb: [92, 436],
-  M145: [145, 380], M197: [197, 380], B145: [145, 436], B197: [197, 436], X: [118, 522]
-};
-const EDGES = [['E','Ein'],['Ein','Rb'],['Rb','Rm'],['Rm','Rt'],['Rt','Tr'],['Rt','T197'],['T197','T145'],['T145','T92'],['T92','Lm'],['Lm','Lb'],
-  ['T145','M145'],['T197','M197'],['Lm','M145'],['M145','M197'],['M197','Rm'],['Lb','B145'],['B145','B197'],['B197','Rb']];
-const adj = {};
-const link = (a, b) => { const d = Math.hypot(N[a][0] - N[b][0], N[a][1] - N[b][1]); (adj[a] ||= []).push([b, d]); (adj[b] ||= []).push([a, d]); };
-EDGES.forEach(([a, b]) => link(a, b));
-ZONES.forEach(z => {
-  const id = 'z_' + z.id, [px, py] = z.stop; let best = null;
-  EDGES.forEach(([a, b]) => {
-    const [ax, ay] = N[a], [bx, by] = N[b], dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
-    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L));
-    const qx = ax + t * dx, qy = ay + t * dy, d = Math.hypot(px - qx, py - qy);
-    if (!best || d < best.d) best = { d, a, b, q: [qx, qy] };
+/* ---------- Layout (user editable, saved on the phone) ---------- */
+function defaultLayout() { return { r: Object.fromEntries(ZONES.filter(z => !z.custom).map(z => [z.id, [...z.r]])), entry: [282, 508], exit: [117, 508], custom: [] }; }
+ZONES.forEach(z => { z.r0 = [...z.r]; });
+let layout = store.get('layout', null);
+if (!layout || !layout.r || !layout.entry) layout = defaultLayout();
+layout.custom ||= [];
+function saveLayout() { store.set('layout', layout); }
+function applyLayout() {
+  for (let i = ZONES.length - 1; i >= 0; i--) if (ZONES[i].custom) ZONES.splice(i, 1);
+  layout.custom.forEach(c => ZONES.push({ id: c.id, name: c.name, ro: c.ro || '', c: c.c, custom: true, lab: [c.name], items: [] }));
+  ZONES.forEach(z => {
+    if (!layout.r[z.id]) layout.r[z.id] = [...(z.r0 || [150, 230, 60, 40])]; z.r = layout.r[z.id];
+    z.name0 ||= z.name; z.lab0 ||= z.lab;
+    const nn = (layout.names || {})[z.id]; z.name = nn || z.name0; z.lab = nn ? [nn] : z.lab0;
   });
-  N[id] = best.q; link(id, best.a); link(id, best.b);
-});
-link('z_kassza', 'X');
-function path(a, b) {
-  const dist = { [a]: 0 }, prev = {}, seen = new Set();
-  while (true) {
-    let u = null; for (const k in dist) if (!seen.has(k) && (u === null || dist[k] < dist[u])) u = k;
-    if (u === null || u === b) break; seen.add(u);
-    for (const [v, w] of adj[u]) if (dist[u] + w < (dist[v] ?? Infinity)) { dist[v] = dist[u] + w; prev[v] = u; }
+  ZI = Object.fromEntries(ZONES.map(z => [z.id, z]));
+  buildGrid(); computeOrder();
+}
+
+/* ---------- Routing on a walkable grid (works for any layout) ---------- */
+const CELL = 6, GW = 60, GH = 90;
+let blocked, stops = {};
+const cidx = (i, j) => j * GW + i;
+const cc = (i, j) => [i * CELL + CELL / 2, j * CELL + CELL / 2];
+const toCell = ([x, y]) => [Math.max(0, Math.min(GW - 1, Math.floor(x / CELL))), Math.max(0, Math.min(GH - 1, Math.floor(y / CELL)))];
+function rectDist(x, y, [rx, ry, rw, rh]) { const dx = Math.max(rx - x, 0, x - rx - rw), dy = Math.max(ry - y, 0, y - ry - rh); return Math.hypot(dx, dy); }
+function nearestFree(p) {
+  let best = null, bd = Infinity;
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) if (!blocked[cidx(i, j)]) { const [x, y] = cc(i, j), d = Math.hypot(x - p[0], y - p[1]); if (d < bd) { bd = d; best = [i, j]; } }
+  return best;
+}
+function bfs(start) {
+  const dist = new Int32Array(GW * GH).fill(-1), q = [start]; dist[cidx(...start)] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const [i, j] = q[h];
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= GW || b >= GH) continue;
+      const k = cidx(a, b); if (blocked[k] || dist[k] >= 0) continue; dist[k] = dist[cidx(i, j)] + 1; q.push([a, b]);
+    }
   }
-  const out = [b]; let c = b; while (c !== a) { c = prev[c]; if (c === undefined) return [a, b]; out.unshift(c); }
+  return dist;
+}
+function buildGrid() {
+  blocked = new Uint8Array(GW * GH);
+  for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+    const [x, y] = cc(i, j);
+    if (x < 20 || x > 340 || y < 20 || y > 502) { blocked[cidx(i, j)] = 1; continue; }
+    if (ZONES.some(z => rectDist(x, y, z.r) < 6)) blocked[cidx(i, j)] = 1;
+  }
+  const entry = nearestFree(layout.entry), reach = bfs(entry);
+  stops = { _entry: entry, _exit: nearestFree(layout.exit) };
+  ZONES.forEach(z => {
+    const [rx, ry, rw, rh] = z.r, cx = rx + rw / 2, cy = ry + rh / 2;
+    let best = null, bs = Infinity;
+    for (let j = 0; j < GH; j++) for (let i = 0; i < GW; i++) {
+      const k = cidx(i, j); if (blocked[k]) continue;
+      const [x, y] = cc(i, j), d = rectDist(x, y, z.r);
+      const s = d * 6 + Math.hypot(x - cx, y - cy) * 0.15 + (reach[k] < 0 ? 5000 : 0);
+      if (s < bs) { bs = s; best = [i, j]; }
+    }
+    stops[z.id] = best || entry;
+  });
+}
+function astar(a, b) {
+  const open = new Map(), g = new Float64Array(GW * GH).fill(Infinity), came = new Int32Array(GW * GH).fill(-1), closed = new Uint8Array(GW * GH);
+  const H = (i, j) => { const dx = Math.abs(i - b[0]), dy = Math.abs(j - b[1]); return dx + dy - 0.586 * Math.min(dx, dy); };
+  const s = cidx(...a), t = cidx(...b); g[s] = 0; open.set(s, H(...a));
+  while (open.size) {
+    let u = -1, uf = Infinity; for (const [k, f] of open) if (f < uf) { uf = f; u = k; }
+    open.delete(u); if (u === t) break; closed[u] = 1;
+    const ui = u % GW, uj = (u - ui) / GW;
+    for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+      if (!di && !dj) continue; const i = ui + di, j = uj + dj; if (i < 0 || j < 0 || i >= GW || j >= GH) continue;
+      const k = cidx(i, j); if (blocked[k] || closed[k]) continue;
+      if (di && dj && (blocked[cidx(ui + di, uj)] || blocked[cidx(ui, uj + dj)])) continue;
+      const ng = g[u] + (di && dj ? 1.414 : 1); if (ng < g[k]) { g[k] = ng; came[k] = u; open.set(k, ng + H(i, j)); }
+    }
+  }
+  const out = []; let c = t; if (came[t] < 0 && s !== t) return [cc(...a), cc(...b)];
+  while (c !== -1) { const i = c % GW; out.unshift(cc(i, (c - i) / GW)); if (c === s) break; c = came[c]; }
   return out;
 }
-function routeThrough(zoneIds) {
-  const seq = ['E', ...zoneIds.map(z => 'z_' + z)];
-  let pts = [N.E];
-  for (let i = 1; i < seq.length; i++) path(seq[i - 1], seq[i]).slice(1).forEach(n => pts.push(N[n]));
+function clear([x0, y0], [x1, y1]) {
+  const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 2);
+  for (let s = 0; s <= n; s++) { const x = x0 + (x1 - x0) * s / n, y = y0 + (y1 - y0) * s / n; if (blocked[cidx(...toCell([x, y]))]) return false; }
+  return true;
+}
+function smooth(pts) {
+  if (pts.length < 3) return pts; const out = [pts[0]]; let i = 0;
+  while (i < pts.length - 1) { let j = pts.length - 1; while (j > i + 1 && !clear(pts[i], pts[j])) j--; out.push(pts[j]); i = j; }
+  return out;
+}
+function computeOrder() {
+  // Greedy walk from the entrance: always go to the nearest unvisited department; checkout last.
+  let cur = stops._entry, left = ZONES.filter(z => z.id !== 'kassza').map(z => z.id), ord = 0;
+  while (left.length) {
+    const d = bfs(cur); let best = left[0], bd = Infinity;
+    left.forEach(id => { const v = d[cidx(...stops[id])]; const dv = v < 0 ? 1e6 : v; if (dv < bd) { bd = dv; best = id; } });
+    ZI[best].ord = ord++; cur = stops[best]; left = left.filter(x => x !== best);
+  }
+  if (ZI.kassza) ZI.kassza.ord = ord;
+  ZONES.sort((a, b) => a.ord - b.ord);
+}
+function orderZones(ids) {
+  // Nearest-next walk from the entrance over just these departments; checkout always last.
+  let cur = stops._entry, left = [...new Set(ids)].filter(id => id !== 'kassza' && ZI[id]); const out = [];
+  while (left.length) {
+    const d = bfs(cur); let best = left[0], bd = Infinity;
+    left.forEach(id => { const v = d[cidx(...stops[id])]; const dv = v < 0 ? 1e6 : v; if (dv < bd) { bd = dv; best = id; } });
+    out.push(best); cur = stops[best]; left = left.filter(x => x !== best);
+  }
+  if (ids.includes('kassza')) out.push('kassza');
+  return out;
+}
+function routeThrough(zoneIds, toExit) {
+  const seq = [stops._entry, ...zoneIds.map(z => stops[z])]; if (toExit) seq.push(stops._exit);
+  let pts = [layout.entry];
+  for (let i = 1; i < seq.length; i++) pts.push(...smooth(astar(seq[i - 1], seq[i])).slice(i === 1 ? 0 : 1));
+  if (toExit) pts.push(layout.exit);
   let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
   return { pts, len };
 }
@@ -453,53 +567,59 @@ function search(q) {
 /* ---------- Draw plan ---------- */
 const plan = $('#plan');
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+let editing = false, selected = null, swapFrom = null;
+function labelFor(z) {
+  const [x, y, w, h] = z.r, cx = x + w / 2, cy = y + h / 2, vert = h > w * 1.6 && w < 60;
+  const txt = vert ? [z.lab.join(' · ')] : z.lab.map((l, i) => (i ? '& ' : '') + l);
+  const longest = Math.max(...txt.map(t => t.length)), span = (vert ? h : w) - 8, thick = vert ? w : h;
+  const fs = Math.max(6.5, Math.min(10.5, span / (longest * 0.6), (thick - 4) / (txt.length * 1.25)));
+  return { vert, txt, fs, cx, cy };
+}
+function drawDoor(p, label, color, kind) {
+  const g = el('g', { class: 'door', 'data-door': kind }, plan);
+  el('rect', { x: p[0] - 30, y: p[1] - 8, width: 60, height: 16, rx: 8, fill: color }, g);
+  const t = el('text', { x: p[0], y: p[1] + .5, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 8.5, 'font-weight': 800, fill: '#0A1431', 'font-family': 'Manrope, sans-serif' }, g);
+  t.textContent = label;
+}
 function drawPlan() {
   plan.innerHTML = '';
   const defs = el('defs', {}, plan);
   const pat = el('pattern', { id: 'grid', width: 12, height: 12, patternUnits: 'userSpaceOnUse' }, defs);
   el('path', { d: 'M12 0H0V12', fill: 'none', stroke: 'var(--floor-grid)', 'stroke-width': 1 }, pat);
-  el('rect', { x: 8, y: 8, width: 344, height: 506, rx: 20, fill: 'url(#grid)', stroke: 'var(--wall)', 'stroke-width': 2.5 }, plan);
-  // doors
-  el('rect', { x: 262, y: 508, width: 40, height: 12, rx: 3, fill: 'var(--ok)' }, plan);
-  el('rect', { x: 92, y: 508, width: 50, height: 12, rx: 3, fill: 'var(--muted)' }, plan);
-  const t1 = el('text', { x: 282, y: 535, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: 'var(--ok)', 'font-family': 'Manrope, sans-serif' }, plan); t1.textContent = 'BEJÁRAT';
-  const t2 = el('text', { x: 117, y: 535, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 800, fill: 'var(--muted)', 'font-family': 'Manrope, sans-serif' }, plan); t2.textContent = 'KIJÁRAT';
+  el('rect', { x: 8, y: 8, width: 344, height: 512, rx: 20, fill: 'url(#grid)', stroke: 'var(--wall)', 'stroke-width': 2.5 }, plan);
   const zg = el('g', { id: 'zones' }, plan);
   ZONES.forEach(z => {
     const [x, y, w, h] = z.r;
-    const g = el('g', { class: 'zone', 'data-z': z.id, tabindex: 0, role: 'button', 'aria-label': z.name }, zg);
-    el('rect', { class: 'box', x, y, width: w, height: h, rx: 8, fill: z.c, 'fill-opacity': .22, stroke: z.c, 'stroke-width': 1.4 }, g);
-    if (z.id === 'kassza') for (let i = 0; i < 4; i++) el('rect', { x: x + 14 + i * 46, y: y + 8, width: 28, height: 12, rx: 3, fill: z.c, 'fill-opacity': .55 }, g);
-    if (z.id === 'nonf') for (let i = 0; i < 3; i++) el('rect', { x: x + 6 + i * 42, y: y + 5, width: 36, height: 20, rx: 5, fill: z.c, 'fill-opacity': .25 }, g);
-    const cx = x + w / 2, cy = y + h / 2;
-    if (z.vert) {
-      const t = el('text', { x: cx, y: cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, transform: `rotate(-90 ${cx} ${cy})` }, g);
-      t.textContent = z.lab.join(' · ');
-    } else {
-      const fs = w < 70 ? 8.6 : 10;
-      const ty = z.id === 'kassza' ? y + 35 : cy - (z.lab.length - 1) * 6;
-      z.lab.forEach((l, i) => { const t = el('text', { x: cx, y: ty + i * 12, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': fs, class: i ? 'sub' : '' }, g); t.textContent = (i ? '& ' : '') + l; });
+    const g = el('g', { class: 'zone' + (selected === z.id ? ' sel' : '') + (swapFrom === z.id ? ' swapping' : ''), 'data-z': z.id, tabindex: 0, role: 'button', 'aria-label': z.name }, zg);
+    el('rect', { class: 'box', x, y, width: w, height: h, rx: Math.min(8, w / 3, h / 3), fill: z.c, 'fill-opacity': .22, stroke: z.c, 'stroke-width': 1.4 }, g);
+    const L = labelFor(z);
+    if (L.vert) { const t = el('text', { x: L.cx, y: L.cy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': L.fs, transform: `rotate(-90 ${L.cx} ${L.cy})` }, g); t.textContent = L.txt[0]; }
+    else L.txt.forEach((l, i) => { const t = el('text', { x: L.cx, y: L.cy + (i - (L.txt.length - 1) / 2) * L.fs * 1.2, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': L.fs, class: i ? 'sub' : '' }, g); t.textContent = l; });
+    if (editing && selected === z.id) {
+      el('circle', { class: 'handle', 'data-handle': z.id, cx: x + w, cy: y + h, r: 7 }, g);
+      el('circle', { 'data-handle': z.id, cx: x + w, cy: y + h, r: 16, fill: 'transparent' }, g);
     }
-    g.addEventListener('click', () => openZone(z.id));
-    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openZone(z.id); } });
+    g.addEventListener('keydown', e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openZone(z.id); } });
   });
+  drawDoor(layout.entry, 'BEJÁRAT', '#3DDC84', 'entry');
+  drawDoor(layout.exit, 'KIJÁRAT', '#93A3CC', 'exit');
   el('g', { id: 'routeLayer' }, plan);
-  el('circle', { class: 'you', cx: N.E[0], cy: N.E[1] - 8, r: 6 }, plan);
+  if (!editing) el('circle', { class: 'you', cx: layout.entry[0], cy: layout.entry[1] - 16, r: 6 }, plan);
 }
 
 function showRoute(zoneIds, numbered) {
-  const layer = $('#routeLayer'); layer.innerHTML = '';
+  const layer = $('#routeLayer'); if (!layer) return; layer.innerHTML = '';
   plan.classList.toggle('dim', zoneIds.length > 0);
   document.querySelectorAll('.zone').forEach(g => g.classList.toggle('on', zoneIds.includes(g.dataset.z)));
   if (!zoneIds.length) return;
-  const { pts, len } = routeThrough(zoneIds);
+  const { pts, len } = routeThrough(zoneIds, numbered);
   const d = 'M' + pts.map(p => p.map(n => n.toFixed(1)).join(' ')).join('L');
   el('path', { class: 'route-bg', d }, layer);
   const r = el('path', { class: 'route', d, 'stroke-dasharray': len, 'stroke-dashoffset': len }, layer);
   el('path', { class: 'flow', d }, layer);
   requestAnimationFrame(() => { r.style.transition = `stroke-dashoffset ${Math.min(2.2, .6 + len / 900)}s cubic-bezier(.4,.1,.2,1)`; r.setAttribute('stroke-dashoffset', 0); });
   zoneIds.forEach((z, i) => {
-    const [x, y] = N['z_' + z];
+    const [x, y] = cc(...stops[z]);
     if (numbered || i === zoneIds.length - 1) el('circle', { class: 'pin-pulse', cx: x, cy: y, r: 9 }, layer);
     el('circle', { cx: x, cy: y, r: numbered ? 8 : 7, fill: 'var(--accent)', stroke: 'var(--floor)', 'stroke-width': 2 }, layer);
     if (numbered) { const t = el('text', { class: 'stopnum', x, y: y + .5, 'text-anchor': 'middle', 'dominant-baseline': 'central' }, layer); t.textContent = i + 1; }
@@ -508,11 +628,121 @@ function showRoute(zoneIds, numbered) {
   $('#mapPill').textContent = numbered ? `${zoneIds.length} megálló · ~${meters} m` : `${ZI[zoneIds[zoneIds.length - 1]].name} · ~${meters} m`;
 }
 
+/* ---------- Map editor: drag, resize, swap, add ---------- */
+function svgPt(e) { const p = plan.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const q = p.matrixTransform(plan.getScreenCTM().inverse()); return [q.x, q.y]; }
+const snap = v => Math.round(v / 2) * 2;
+let drag = null;
+plan.addEventListener('pointerdown', e => {
+  const handle = e.target.closest('[data-handle]'), zoneG = e.target.closest('.zone'), door = e.target.closest('.door');
+  const p = svgPt(e);
+  if (!editing) { drag = { tapOnly: true, z: zoneG && zoneG.dataset.z, p0: p }; return; }
+  e.preventDefault();
+  if (handle) drag = { mode: 'resize', z: handle.dataset.handle, p0: p, r0: [...layout.r[handle.dataset.handle]] };
+  else if (door) drag = { mode: 'door', kind: door.dataset.door, p0: p, d0: [...layout[door.dataset.door]] };
+  else if (zoneG) drag = { mode: 'move', z: zoneG.dataset.z, p0: p, r0: [...layout.r[zoneG.dataset.z]], moved: false };
+  else { drag = null; selected = null; swapFrom = null; drawPlan(); updateEditBar(); return; }
+  try { plan.setPointerCapture(e.pointerId); } catch {}
+});
+plan.addEventListener('pointermove', e => {
+  if (!drag || drag.tapOnly) return;
+  const p = svgPt(e), dx = p[0] - drag.p0[0], dy = p[1] - drag.p0[1];
+  if (Math.hypot(dx, dy) > 3) drag.moved = true;
+  if (drag.mode === 'move' && drag.moved) {
+    const [x, y, w, h] = drag.r0, r = layout.r[drag.z];
+    r[0] = snap(Math.max(10, Math.min(350 - w, x + dx))); r[1] = snap(Math.max(10, Math.min(518 - h, y + dy)));
+    selected = drag.z; drawPlan();
+  } else if (drag.mode === 'resize') {
+    const r = layout.r[drag.z], [x, y, w, h] = drag.r0;
+    r[2] = snap(Math.max(14, Math.min(350 - x, w + dx))); r[3] = snap(Math.max(14, Math.min(518 - y, h + dy))); drawPlan();
+  } else if (drag.mode === 'door') {
+    layout[drag.kind] = [snap(Math.max(40, Math.min(320, drag.d0[0] + dx))), snap(Math.max(20, Math.min(512, drag.d0[1] + dy)))]; drawPlan();
+  }
+});
+plan.addEventListener('pointerup', e => {
+  const d = drag; drag = null; if (!d) return;
+  if (d.tapOnly) { const p = svgPt(e); if (d.z && Math.hypot(p[0] - d.p0[0], p[1] - d.p0[1]) < 8) openZone(d.z); return; }
+  if (d.mode === 'move' && !d.moved) {
+    if (swapFrom && swapFrom !== d.z) {
+      const a = layout.r[swapFrom], b = layout.r[d.z];
+      layout.r[swapFrom] = b; layout.r[d.z] = a; toast(`Felcserélve: ${ZI[swapFrom].name} ↔ ${ZI[d.z].name}`);
+      selected = d.z; swapFrom = null;
+    } else { selected = selected === d.z ? null : d.z; swapFrom = null; }
+  }
+  saveLayout(); applyLayout(); drawPlan(); updateEditBar();
+});
+plan.addEventListener('pointercancel', () => { drag = null; });
+
+function updateEditBar() {
+  const bar = $('#editBar'); bar.hidden = !editing;
+  $('#editBtn').textContent = editing ? 'Kész' : 'Szerkesztés';
+  $('#editBtn').classList.toggle('on', editing);
+  $('.mapcard').classList.toggle('editing', editing);
+  const z = selected && ZI[selected];
+  $('#editHint').innerHTML = swapFrom ? `Most koppints arra a részlegre, amivel a(z) <b>${esc(ZI[swapFrom].name)}</b> helyet cserél.`
+    : z ? `Kijelölve: <b>${esc(z.name)}</b>. Húzd odébb, a sárga sarokkal méretezd, vagy cseréld fel egy másikkal.`
+    : 'Koppints egy részlegre a kijelöléshez, vagy húzd a helyére. A BEJÁRAT és a KIJÁRAT is húzható.';
+  ['#eSwap', '#eRot', '#eRen'].forEach(s => { $(s).disabled = !z; });
+  $('#eDel').hidden = !(z && z.custom);
+}
+function setEditing(on) {
+  editing = on; selected = null; swapFrom = null;
+  if (on) { showRoute([]); $('#mapPill').textContent = 'Szerkesztés'; drawLegend(); }
+  drawPlan(); updateEditBar();
+  if (!on) { renderList(); drawLegend(); $('#mapPill').textContent = 'Mentve'; toast('Térkép elmentve'); }
+}
+
 /* ---------- Legend ---------- */
 function drawLegend(active) {
   $('#legend').innerHTML = ZONES.map(z => `<button class="chip" data-z="${z.id}" aria-pressed="${z.id === active}"><i style="background:${z.c}"></i>${esc(z.name)}</button>`).join('');
 }
-$('#legend').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) openZone(b.dataset.z); });
+$('#legend').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  if (!editing) { openZone(b.dataset.z); return; }
+  if (swapFrom && swapFrom !== b.dataset.z) { const a = layout.r[swapFrom]; layout.r[swapFrom] = layout.r[b.dataset.z]; layout.r[b.dataset.z] = a; toast(`Felcserélve: ${ZI[swapFrom].name} ↔ ${ZI[b.dataset.z].name}`); swapFrom = null; saveLayout(); applyLayout(); }
+  selected = b.dataset.z; drawPlan(); drawLegend(selected); updateEditBar();
+});
+$('#editBtn').addEventListener('click', () => setEditing(!editing));
+$('#eSwap').addEventListener('click', () => { swapFrom = selected; drawPlan(); updateEditBar(); });
+$('#eRot').addEventListener('click', () => {
+  const r = layout.r[selected], cx = r[0] + r[2] / 2, cy = r[1] + r[3] / 2, w = r[3], h = r[2];
+  r[2] = w; r[3] = h; r[0] = snap(Math.max(10, Math.min(350 - w, cx - w / 2))); r[1] = snap(Math.max(10, Math.min(518 - h, cy - h / 2)));
+  saveLayout(); applyLayout(); drawPlan(); updateEditBar();
+});
+$('#eRen').addEventListener('click', () => {
+  const z = ZI[selected];
+  openSheet(`<div class="sh-head"><div class="sw" style="background:${z.c}">Aa</div><div><h3 id="shTitle">Részleg átnevezése</h3><p>Például: „Virág”, „Drogéria”, „Akciós sarok”.</p></div></div>
+    <input class="field" id="renIn" maxlength="28" value="${esc(z.name)}" aria-label="Részleg neve">
+    <div class="row"><button class="btn" id="renOk">Mentés</button><button class="btn ghost" data-close>Mégse</button></div>`);
+  setTimeout(() => $('#renIn').focus(), 350);
+  $('#renOk').onclick = () => { const v = $('#renIn').value.trim(); if (!v) return; (layout.names ||= {})[z.id] = v; const c = layout.custom.find(c => c.id === z.id); if (c) c.name = v; saveLayout(); applyLayout(); drawPlan(); drawLegend(selected); updateEditBar(); closeSheet(); };
+});
+$('#eAdd').addEventListener('click', () => {
+  openSheet(`<div class="sh-head"><div class="sw" style="background:var(--accent)">+</div><div><h3 id="shTitle">Új részleg</h3><p>Megjelenik a térkép közepén, onnan húzd a helyére.</p></div></div>
+    <input class="field" id="newIn" maxlength="28" placeholder="pl. Virág, Drogéria, Bio sarok" aria-label="Új részleg neve">
+    <div class="row"><button class="btn" id="newOk">Hozzáadás</button><button class="btn ghost" data-close>Mégse</button></div>`);
+  setTimeout(() => $('#newIn').focus(), 350);
+  $('#newOk').onclick = () => {
+    const v = $('#newIn').value.trim(); if (!v) return;
+    const id = 'c' + Date.now().toString(36);
+    layout.custom.push({ id, name: v, c: PALETTE[layout.custom.length % PALETTE.length] }); layout.r[id] = [150, 244, 60, 40];
+    saveLayout(); applyLayout(); selected = id; drawPlan(); drawLegend(id); updateEditBar(); closeSheet();
+  };
+});
+$('#eDel').addEventListener('click', () => {
+  const id = selected; layout.custom = layout.custom.filter(c => c.id !== id); delete layout.r[id];
+  for (const k in overrides) if (overrides[k] === id) delete overrides[k];
+  custom = custom.filter(c => c.z !== id); store.set('ovr', overrides); store.set('custom', custom);
+  saveLayout(); applyLayout();
+  list.forEach(it => { if (it.z === id) it.z = zoneOf(it.name) || 'nonf'; }); saveList();
+  selected = null; drawPlan(); drawLegend(); updateEditBar();
+});
+$('#eReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Biztos? Koppints újra'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Alapállapot'; }, 3000); return; }
+  delete b.dataset.armed; b.textContent = 'Alapállapot';
+  const keep = layout.custom; layout = defaultLayout(); layout.custom = keep;
+  saveLayout(); applyLayout(); selected = null; drawPlan(); drawLegend(); updateEditBar(); toast('Visszaállítva az alap elrendezésre');
+});
 
 /* ---------- Sheet ---------- */
 const sheet = $('#sheet'), backdrop = $('#backdrop');
@@ -532,9 +762,8 @@ function openZone(zid, hlName) {
   const z = ZI[zid];
   showRoute([zid]); drawLegend(zid); setView('terkep', true);
   const prods = catalogue().filter(p => p.z === zid);
-  const step = z.ord + 1;
-  openSheet(`
-    <div class="sh-head"><div class="sw" style="background:${z.c}">${step}</div><div><h3 id="shTitle">${esc(z.name)}</h3><p>RO: ${esc(z.ro)} · bejárás ${step}. állomása</p></div></div>
+    openSheet(`
+    <div class="sh-head"><div class="sw" style="background:${z.c}">${esc(z.name[0])}</div><div><h3 id="shTitle">${esc(z.name)}</h3><p>${z.ro ? 'RO: ' + esc(z.ro) : 'Saját részleg'}</p></div></div>
     <div class="prods">${prods.map(p => `<button class="prod${hlName && norm(p.hu) === norm(hlName) ? ' hl' : ''}" data-add="${esc(p.hu)}">${esc(p.hu)} <span class="plus">+</span><small>${esc(p.ro)}</small></button>`).join('')}</div>
     <p class="src" style="margin:0">Koppints egy termékre, hogy a listádra kerüljön.</p>
     ${hlName ? `<div class="row"><button class="btn sm ghost" data-move="${esc(hlName)}">„${esc(hlName)}” nem itt van? Áthelyezem</button></div>` : ''}
@@ -598,10 +827,10 @@ function renderList() {
   $('#prog').style.width = list.length ? ((list.length - open) / list.length * 100) + '%' : '0';
   if (!list.length) { body.innerHTML = `<div class="emptylist"><b style="color:var(--ink)">Üres a lista.</b><br>Írd be fent, mit kell venni (magyarul vagy románul), és bejárási sorrendbe rendezem.</div>`; return; }
   const groups = {};
-  list.forEach((it, idx) => (groups[it.z] ||= []).push({ ...it, idx }));
-  body.innerHTML = Object.keys(groups).sort((a, b) => ZI[a].ord - ZI[b].ord).map((zid, gi) => {
+  list.forEach((it, idx) => { if (!ZI[it.z]) it.z = zoneOf(it.name) || 'nonf'; (groups[it.z] ||= []).push({ ...it, idx }); });
+  body.innerHTML = orderZones(Object.keys(groups)).map((zid, gi) => {
     const z = ZI[zid];
-    return `<div class="group"><header><span class="n" style="background:${z.c}">${gi + 1}</span><b>${esc(z.name)}</b><small>RO: ${esc(z.ro)}</small></header>${groups[zid].map(it => {
+    return `<div class="group"><header><span class="n" style="background:${z.c}">${gi + 1}</span><b>${esc(z.name)}</b><small>${z.ro ? 'RO: ' + esc(z.ro) : ''}</small></header>${groups[zid].map(it => {
       const ro = (catalogue().find(p => norm(p.hu) === norm(it.name)) || {}).ro;
       return `<div class="item${it.done ? ' done' : ''}"><button class="cb" data-tog="${it.idx}" aria-label="${esc(it.name)} kipipálása" aria-pressed="${it.done}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button><div class="t"><b>${esc(it.name)}</b>${ro ? `<small>${esc(ro)}</small>` : ''}</div><button class="x" data-loc="${it.idx}" aria-label="Megmutatás a térképen"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg></button><button class="x" data-del="${it.idx}" aria-label="${esc(it.name)} törlése">×</button></div>`;
     }).join('')}</div>`;
@@ -626,9 +855,8 @@ $('#clearAll').addEventListener('click', e => {
   b.dataset.armed = 1; b.textContent = 'Biztos? Koppints újra'; setTimeout(() => { if (b.dataset.armed) { delete b.dataset.armed; b.textContent = 'Lista ürítése'; } }, 3000);
 });
 $('#routeBtn').addEventListener('click', () => {
-  const zs = [...new Set(list.filter(i => !i.done).map(i => i.z))].sort((a, b) => ZI[a].ord - ZI[b].ord);
-  if (!zs.length) { toast('Nincs kipipálatlan tétel'); return; }
-  if (zs[zs.length - 1] !== 'kassza') zs.push('kassza');
+  const zs = orderZones([...list.filter(i => !i.done).map(i => i.z), 'kassza']);
+  if (zs.length < 2) { toast('Nincs kipipálatlan tétel'); return; }
   setView('terkep'); drawLegend(); setTimeout(() => showRoute(zs, true), 60);
 });
 
@@ -666,11 +894,11 @@ let toastT;
 function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
 
 /* ---------- Boot ---------- */
-drawPlan(); drawLegend(); renderList(); renderHours(); setInterval(renderHours, 30000);
+applyLayout(); drawPlan(); drawLegend(); renderList(); renderHours(); setInterval(renderHours, 30000);
 const startV = location.hash.slice(1);
 setView(VIEWS.includes(startV) ? startV : 'terkep', true);
 // Opening frame: show the sample shopping route so the map is alive at rest.
-setTimeout(() => { const zs = [...new Set(list.filter(i => !i.done).map(i => i.z))].sort((a, b) => ZI[a].ord - ZI[b].ord); if (zs.length) { zs.push('kassza'); showRoute([...new Set(zs)], true); } }, 250);
+setTimeout(() => { const zs = orderZones([...list.filter(i => !i.done).map(i => i.z), 'kassza']); if (zs.length > 1) showRoute(zs, true); }, 250);
 if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
